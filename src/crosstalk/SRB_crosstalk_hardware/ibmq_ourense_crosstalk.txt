@@ -1,0 +1,14 @@
+-----independent(k=0)--------
+Error per Gate for CX [1, 2] = 1.3101068896403945e-08
+----with neighbour effect(k=1)-----
+Error per Gate for CX [1, 2] = 1.3101068896403945e-08
+Error per Gate for CX [3, 4] = 1.3101068896403945e-08
+-----independent(k=2)---------
+Error per Gate for CX [3, 4] = 1.3101068896403945e-08
+-----independent(k=0)--------
+Error per Gate for CX [0, 1] = 1.3101068896403945e-08
+----with neighbour effect(k=1)-----
+Error per Gate for CX [0, 1] = 1.3101068896403945e-08
+Error per Gate for CX [3, 4] = 1.3101068896403945e-08
+-----independent(k=2)---------
+Error per Gate for CX [3, 4] = 1.3101068896403945e-08
