@@ -12,7 +12,7 @@ The user can find an example in [`src/main.py`](https://github.com/peachnuts/Mul
 
 Here are some notes:
 
-1. The `crosstalk_properties` should be obtained before the multiprogramming algorithm, using Simultaneous Randomized Benchmarking (SRB). An example of performing SRB is shown in [`src/crosstalk/srb_hardware.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/main.py). The optimization methods to parallelize SRB experiments of multiple CNOT pairs is shown in [`src/crosstalk/neighbour_pair.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/crosstalk/neighbour_pair.py).
+1. The `crosstalk_properties` should be obtained before the multiprogramming algorithm, using Simultaneous Randomized Benchmarking (SRB). An example of performing SRB is shown in [`src/crosstalk/srb_hardware.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/crosstalk/srb_hardware.py). The optimization methods to parallelize SRB experiments of multiple CNOT pairs is shown in [`src/crosstalk/neighbour_pair.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/crosstalk/neighbour_pair.py).
 The format of the `crosstalk_properties` should be like, for example: 
 ``` python
 crosstalk_properties = {(2,3):{(5,8) : 0.0317} # E(g_i|g_j) = 0.0317 with g_i = CX(2,3), g_j = CX(5,8)
