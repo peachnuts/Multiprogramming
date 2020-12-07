@@ -2,7 +2,7 @@
 This repository contains the implementation of our multiprogramming mapping algorithms, including SRB, qubit mapping partition (GSP and QHSP), and mapping transition. HA algorithm is also included to evalutate the independent executions.
 
 ## Installation
-You can install it by cloning with `git`:
+The user can install it by cloning with `git`:
 
 ``` shell
 https://github.com/peachnuts/Multiprogramming.git
