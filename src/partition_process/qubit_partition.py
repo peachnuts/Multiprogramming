@@ -45,14 +45,16 @@ logger = logging.getLogger("qubit_partition")
 def qubit_fidelity_degree(qubit_index: int,
                  hardware: IBMQHardwareArchitecture,
                  cnot_error_matrix: np.ndarray,
-                 readout_error: ty.List):
+                 readout_error: ty.List,
+                 weight_lambda: int,):
     """
     Return the fidelity degree of a qubit.
-    F_degree_Qi  = sum(1 - E[Qi][Qj]) + (1 - R_Qi), Qj are the neighbor qubits of Qi.
+    F_degree_Qi  = lambda * sum(1 - E[Qi][Qj]) + (1 - R_Qi), Qj are the neighbor qubits of Qi.
     """
     degree = 0.0
     for neighbour in hardware.neighbors(qubit_index):
         degree += (1 - cnot_error_matrix.item(qubit_index, neighbour))
+    degree *= weight_lambda
     degree += (1 - readout_error[qubit_index])
     return degree
 
@@ -60,14 +62,15 @@ def qubit_fidelity_degree(qubit_index: int,
 def find_best_qubit(qubit_list: ty.List,
                     hardware: IBMQHardwareArchitecture,
                     cnot_error_matrix: np.ndarray,
-                    readout_error: ty.List):
+                    readout_error: ty.List,
+                    weight_lambda: int,):
     """
     For a given list of qubits, find the qubit with the highest fidelity degree.
     """
     best_qubit_fidelity_degree = -1
     best_qubit = -1
     for qubit in qubit_list:
-        new_qubit_fidelity_degree = qubit_fidelity_degree(qubit, hardware, cnot_error_matrix, readout_error)
+        new_qubit_fidelity_degree = qubit_fidelity_degree(qubit, hardware, cnot_error_matrix, readout_error, weight_lambda)
         if new_qubit_fidelity_degree > best_qubit_fidelity_degree:
             best_qubit = qubit
             best_qubit_fidelity_degree = new_qubit_fidelity_degree
@@ -77,7 +80,8 @@ def find_best_qubit(qubit_list: ty.List,
 def find_qubit(partition: ty.List,
                hardware: IBMQHardwareArchitecture,
                cnot_error_matrix: np.ndarray,
-               readout_error: ty.List,):
+               readout_error: ty.List,
+               weight_lambda: int,):
     """
     Find the qubit to merge into the partition.
     First, we choose the best qubit(highest fidelity degree) of the current partition.
@@ -85,7 +89,8 @@ def find_qubit(partition: ty.List,
     fidelity degree to merge into the partition.
     """
 
-    partition = sorted(partition, key=lambda x: qubit_fidelity_degree(x, hardware, cnot_error_matrix, readout_error), reverse=True)
+    partition = sorted(partition, key=lambda x: qubit_fidelity_degree(x, hardware, cnot_error_matrix, readout_error,
+                                                                      weight_lambda), reverse=True)
     for qubit_index in partition:
         neighbour_list = []
         for neighbour in hardware.neighbors(qubit_index):
@@ -94,7 +99,7 @@ def find_qubit(partition: ty.List,
         if not neighbour_list:
             continue
         else:
-            best_qubit = find_best_qubit(neighbour_list, hardware, cnot_error_matrix, readout_error)
+            best_qubit = find_best_qubit(neighbour_list, hardware, cnot_error_matrix, readout_error, weight_lambda)
             return best_qubit
 
     return None
@@ -108,6 +113,7 @@ def partition_hardware_heuristic(
         readout_error: ty.List,
         qubits_used: ty.Set,
         starting_point: ty.List,
+        weight_lambda: int,
         crosstalk_properties: ty.Dict=None):
     """
     Qubit fidelity degree-based heuristic subgraph partition algorithm.
@@ -118,6 +124,7 @@ def partition_hardware_heuristic(
     :param readout_error: list of readout error of physical qubits
     :param qubits_used: qubits used by other circuits
     :param starting_point: starting points collected
+    :param weight_lambda: weight parameter to weight the CNOT error rate
     :param crosstalk_properties: CNOT pairs with strong crosstalk effect
     :return: A list of partition candidates
     """
@@ -131,7 +138,7 @@ def partition_hardware_heuristic(
                 sub_graph.append(i)
                 num_qubit += 1
                 continue
-            new_qubit = find_qubit(sub_graph, hardware, cnot_error_matrix, readout_error)
+            new_qubit = find_qubit(sub_graph, hardware, cnot_error_matrix, readout_error, weight_lambda)
             if new_qubit!= None:
                 sub_graph.append(new_qubit)
                 num_qubit += 1
@@ -175,6 +182,7 @@ def partition_hardware(hardware: IBMQHardwareArchitecture,
                        readout_error: ty.List,
                        qubits_used: ty.Set,
                        starting_point: ty.List,
+                       weight_lambda: int,
                        crosstalk_properties: ty.Dict=None):
     """
     Greedy sub-graph partition algorithm.
@@ -312,6 +320,7 @@ def partition_circuits(circuits: ty.List[QuantumCircuit],
                        qubit_physical_degree: ty.Dict,
                        largest_physical_degree: float,
                        largest_logical_degrees: ty.List,
+                       weight_lamda: int,
                        partition_method: ty.Callable[[
                            IBMQHardwareArchitecture,
                            nx.DiGraph,
@@ -320,6 +329,7 @@ def partition_circuits(circuits: ty.List[QuantumCircuit],
                            ty.List,
                            ty.Set,
                            ty.List,
+                           int,
                            ty.Dict,
                        ], ty.List] = partition_hardware_heuristic,
                        crosstalk_properties: ty.Dict=None):
@@ -338,8 +348,11 @@ def partition_circuits(circuits: ty.List[QuantumCircuit],
                                                  readout_error,
                                                  qubits_used,
                                                  starting_point,
+                                                 weight_lamda,
                                                  crosstalk_properties),
                                 key=lambda x: x.fidelity)
+
+
         new_partition = partition_list[0]
         if not new_partition:
             logger.error(f"No selected partition'.")

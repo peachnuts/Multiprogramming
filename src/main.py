@@ -1,5 +1,5 @@
 # ======================================================================
-# Copyright TOTAL / CERFACS / LIRMM (12/2020)
+# Copyright LIRMM (12/2020)
 # Contributor: Siyuan Niu (<siyuan.niu@lirmm.fr>)
 # This software is governed by the CeCILL-B license under French law and
 # abiding  by the  rules of  distribution of free software. You can use,
@@ -73,9 +73,15 @@ if __name__ == '__main__':
     # circuits.append(circuit5)
     # circuits.append(circuit6)
 
-    #sort circuit according to ascending order of CNOT density
+    # sort circuit according to ascending order of CNOT density
     circuits = sorted(circuits, key=lambda x: x.count_ops().get("cx", 0) / x.cregs[0].size)
     print([circuit.name for circuit in circuits])
+
+    # threshold of the partition fidelity difference when partitioning independently and simultaneously
+    epslon = 0.1
+    # weight parameter lambda set by user to weight between the CNOT error rate and readout error rate
+    # for fidelity degree of the qubit
+    weight_lambda = 2
 
     # Result includes PHA, QHSP/GSP, HA
     circuits_schedule(circuits,
@@ -83,5 +89,7 @@ if __name__ == '__main__':
                       hardware,
                       cnot_error_matrix,
                       readout_error,
-                      partition_hardware_heuristic,
+                      partition_hardware,
+                      epslon,
+                      weight_lambda,
                       )

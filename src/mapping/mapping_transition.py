@@ -173,8 +173,11 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
                            ty.List,
                            ty.Set,
                            ty.List,
+                           int,
                            ty.Dict,
                        ], ty.List],
+                      epslon,
+                      weight_lambda,
                       crosstalk_properties: ty.Dict=None):
     initial_layouts = []
     final_circuits = []
@@ -197,6 +200,7 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
                                                     qubit_physical_degree,
                                                     largest_physical_degree,
                                                     largest_logical_degrees,
+                                                    weight_lambda,
                                                     partition_method,
                                                     )
         partition_fidelity_independent += independent_partition[0].fidelity
@@ -215,6 +219,7 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
                                             qubit_physical_degree,
                                             largest_physical_degree,
                                             largest_logical_degrees,
+                                            weight_lambda,
                                             partition_method,
                                             crosstalk_properties,
                                             )
@@ -225,9 +230,6 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
         partition_fidelity_multiple += partition.fidelity
 
     # Post qubit partition process
-
-    # threshold of the partition fidelity difference when partitioning independently and simultaneously
-    epslon = 0.1
 
     partition_fidelity_difference = abs(partition_fidelity_independent - partition_fidelity_multiple)
     print("paritition fidelity difference is", partition_fidelity_difference)
