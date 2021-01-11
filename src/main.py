@@ -41,7 +41,7 @@ if __name__ == '__main__':
     hardware_graph = nx.DiGraph(hardware._coupling_graph)
     cnot_error_matrix = get_distance_matrix_cnot_error_cost(hardware)
     readout_error = get_qubit_readout_error(hardware)
-    #(pari):(influenced pair)
+    #(pair):(influenced pair)
     # crosstalk_properties = {(2,3):{(5,8): 0.0317},
     #                         (5,8):{(2,3): 0.031},
     #                         (7,10):{(12,15): 0.0242},
