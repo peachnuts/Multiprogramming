@@ -25,3 +25,6 @@ crosstalk_properties = {(2,3):{(5,8) : 0.0317} # E(g_i|g_j) = 0.0317 with g_i = 
 4. The result includes PHA (independent executions with partition), QHSP/GSP (correlated executions), and HA (independent executions without partition).
 
 5. The quantum register size of the benchmarks should be equal to the hardware qubit numbers.
+
+## Contact information
+If you have any questions, feel free to contact [Siyuan NIU](mailto:siyuan.niu@lirmm.fr?subject=[GitHub] Multiprogramming).
