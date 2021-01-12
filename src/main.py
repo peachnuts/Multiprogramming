@@ -83,13 +83,15 @@ if __name__ == '__main__':
     # for fidelity degree of the qubit
     weight_lambda = 2
 
+    # QHSP: partition_hardware_heuristic
+    # GSP: partition_hardware
     # Result includes PHA, QHSP/GSP, HA
     circuits_schedule(circuits,
                       hardware_graph,
                       hardware,
                       cnot_error_matrix,
                       readout_error,
-                      partition_hardware,
+                      partition_hardware_heuristic,
                       epslon,
                       weight_lambda,
                       )

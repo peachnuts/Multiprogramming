@@ -57,7 +57,7 @@ def submit_circuits(hardware: IBMQHardwareArchitecture,
     print(f"Running on {backend.name()}.")
     #backend = provider.get_backend("ibmq_qasm_simulator")
 
-    circuit_tag = ["6circuitss"]
+    circuit_tag = ["2circuitss"]
     submitter = IBMQSubmitter(backend, tags=circuit_tag)
 
     fidelities = []
