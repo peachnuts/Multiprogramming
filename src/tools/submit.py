@@ -45,7 +45,8 @@ def get_jobs(backend, tags):
 def submit_circuits(hardware: IBMQHardwareArchitecture,
                    initial_layouts: ty.List,
                    final_circuits: ty.List,
-                   partitions: ty.List,):
+                   partitions: ty.List,
+                   circuit_tag: ty.List):
 
     print("Loading account...")
     IBMQ.load_account()
@@ -57,7 +58,6 @@ def submit_circuits(hardware: IBMQHardwareArchitecture,
     print(f"Running on {backend.name()}.")
     #backend = provider.get_backend("ibmq_qasm_simulator")
 
-    circuit_tag = ["2circuitss"]
     submitter = IBMQSubmitter(backend, tags=circuit_tag)
 
     fidelities = []

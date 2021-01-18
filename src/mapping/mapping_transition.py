@@ -178,90 +178,130 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
                        ], ty.List],
                       epslon,
                       weight_lambda,
+                      circuit_tag,
                       crosstalk_properties: ty.Dict=None):
+
     initial_layouts = []
     final_circuits = []
     partitions = []
 
-    partition_fidelity_independent = 0.0
+    # Sort circuit according to ascending order of CNOT density
+    circuits = sorted(circuits, key=lambda x: x.count_ops().get("cx", 0) / x.cregs[0].size)
+
+    # Pick up K circuits that are able to be executed on hardware at the same time
+    # sum(n_i) <= N (qubit number of hardware), 1 <= i <= K
+    circuit_list = []
+    qubit_circuit_sum = 0
+    for circuit in circuits:
+        qubit_circuit_sum += circuit.cregs[0].size
+        if qubit_circuit_sum <= hardware.qubit_number:
+            circuit_list.append(circuit)
+        else:
+            break
+
     qubit_physical_degree, largest_physical_degree = hardware_qubit_physical_degree(hardware)
 
     largest_logical_degrees = []
-    for circuit in circuits:
+    for circuit in circuit_list:
         largest_logical_degrees.append(largest_circuit_logical_degree(circuit))
 
     # Partition independently (PHA algorithm)
-    for circuit in circuits:
+    partition_fidelity_independent_list = []
+    independent_partitions = []
+    for circuit in circuit_list:
         independent_partition = partition_circuits([circuit],
-                                                    hardware_graph,
-                                                    hardware,
-                                                    cnot_error_matrix,
-                                                    readout_error,
-                                                    qubit_physical_degree,
-                                                    largest_physical_degree,
-                                                    largest_logical_degrees,
-                                                    weight_lambda,
-                                                    partition_method,
-                                                    )
-        partition_fidelity_independent += independent_partition[0].fidelity
-        initial_layout, final_circuit = multiprogram_mapping([circuit], hardware, independent_partition)
-        initial_layouts.append(initial_layout)
-        final_circuits.append(final_circuit)
+                                                   hardware_graph,
+                                                   hardware,
+                                                   cnot_error_matrix,
+                                                   readout_error,
+                                                   qubit_physical_degree,
+                                                   largest_physical_degree,
+                                                   largest_logical_degrees,
+                                                   weight_lambda,
+                                                   partition_method,
+                                                   )
         partitions.append(independent_partition[0].value)
+        partition_fidelity_independent_list.append(independent_partition[0].fidelity)
+        independent_partitions.append(independent_partition)
 
-    # Partition simultaneously (multiprogramming)
-    start = time.time()
-    multiple_partition = partition_circuits(circuits,
-                                            hardware_graph,
-                                            hardware,
-                                            cnot_error_matrix,
-                                            readout_error,
-                                            qubit_physical_degree,
-                                            largest_physical_degree,
-                                            largest_logical_degrees,
-                                            weight_lambda,
-                                            partition_method,
-                                            crosstalk_properties,
-                                            )
-    print(f"time is {time.time()-start}")
+    # If K > 1, circuits are executed on the hardware simultaneously (Parallelism metric), K = length of circuit list
+    while len(circuit_list) > 1:
+        # Partition simultaneously (multiprogramming)
+        start = time.time()
+        multiple_partition = partition_circuits(circuit_list,
+                                                hardware_graph,
+                                                hardware,
+                                                cnot_error_matrix,
+                                                readout_error,
+                                                qubit_physical_degree,
+                                                largest_physical_degree,
+                                                largest_logical_degrees,
+                                                weight_lambda,
+                                                partition_method,
+                                                crosstalk_properties,
+                                                )
+        #print(f"time is {time.time() - start}")
 
-    partition_fidelity_multiple = 0.0
-    for partition in multiple_partition:
-        partition_fidelity_multiple += partition.fidelity
+        if not multiple_partition:
+            circuit_list.pop()
+            largest_logical_degrees.pop()
+            partition_fidelity_independent_list.pop()
+            partitions.pop()
+            continue
 
-    # Post qubit partition process
+        partition_fidelity_multiple = 0.0
+        partition_fidelity_independent = sum(partition_fidelity_independent_list)
+        for partition in multiple_partition:
+            partition_fidelity_multiple += partition.fidelity
 
-    partition_fidelity_difference = abs(partition_fidelity_independent - partition_fidelity_multiple)
-    print("paritition fidelity difference is", partition_fidelity_difference)
 
-    if partition_fidelity_difference < epslon:
-        initial_layout, final_circuit = multiprogram_mapping(circuits, hardware, multiple_partition)
-        initial_layouts.append(initial_layout)
-        final_circuits.append(final_circuit)
-        partitions.append([partition.value for partition in multiple_partition])
+        # Post qubit partition process
+        partition_fidelity_difference = abs(partition_fidelity_independent - partition_fidelity_multiple)
+        #print("paritition fidelity difference is", partition_fidelity_difference)
 
-    else:
-        logger.error(
-           "The partition fidelity is too low. The circuits should be executed independently!"
-        )
-        exit(1)
+        if partition_fidelity_difference < epslon:
+            print(f"circuits that are executed simultaneously with threshold {epslon}")
+            for idx, circuit in enumerate(circuit_list):
+                print(f"circuit name : {circuit.name}")
+                print("Independent partition (PHA)")
+                initial_layout, final_circuit = multiprogram_mapping([circuit], hardware, independent_partitions[idx])
+                initial_layouts.append(initial_layout)
+                final_circuits.append(final_circuit)
 
-    # HA mapping
-    for circuit in circuits:
-        circuit_initial_mapping_ha = dict()
-        computed_initial_mapping = initial_mapping(
-            circuit, hardware, None, ha_mapping_paper_compliant, cost, "sabre", 10, circuit_initial_mapping_ha
-        )
+            print("Simultaneous partition")
+            initial_layout, final_circuit = multiprogram_mapping(circuit_list, hardware, multiple_partition)
+            initial_layouts.append(initial_layout)
+            final_circuits.append(final_circuit)
+            partitions.append([partition.value for partition in multiple_partition])
+            print(f"The number of circuits that are executed on hardware simultaneously is {len(circuit_list)}")
+            break
 
-        mapped_circuit, final_mapping = ha_mapping_paper_compliant(
-            circuit, hardware, computed_initial_mapping,
-        )
-        num_cnots_circuits = cost_gate_num(circuit)
-        num_cnots_merge_circuit = cost_gate_num(mapped_circuit)
-        num_additional_cnots = num_cnots_merge_circuit - num_cnots_circuits
-        print(f"additional cnots is {num_additional_cnots}")
-        initial_layouts.append(computed_initial_mapping.values())
-        final_circuits.append(mapped_circuit)
-        partitions.append(None)
+        else:
+            circuit_list.pop()
+            largest_logical_degrees.pop()
+            partition_fidelity_independent_list.pop()
+            partitions.pop()
+            continue
 
-    submit_circuits(hardware, initial_layouts, final_circuits, partitions)
+    # If only one circuit can be executed on the hardware, all the circuits should be executed independently (using HA)
+    if len(circuit_list) == 1:
+        # HA mapping
+        for circuit in circuits:
+            circuit_initial_mapping_ha = dict()
+            computed_initial_mapping = initial_mapping(
+                circuit, hardware, None, ha_mapping_paper_compliant, cost, "sabre", 10, circuit_initial_mapping_ha
+            )
+
+            mapped_circuit, final_mapping = ha_mapping_paper_compliant(
+                circuit, hardware, computed_initial_mapping,
+            )
+            num_cnots_circuits = cost_gate_num(circuit)
+            num_cnots_merge_circuit = cost_gate_num(mapped_circuit)
+            num_additional_cnots = num_cnots_merge_circuit - num_cnots_circuits
+            print(f"additional cnots is {num_additional_cnots}")
+            initial_layouts.append(computed_initial_mapping.values())
+            final_circuits.append(mapped_circuit)
+            partitions.append(None)
+
+    #quit()
+    submit_circuits(hardware, initial_layouts, final_circuits, partitions, circuit_tag)

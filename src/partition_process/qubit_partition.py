@@ -352,13 +352,11 @@ def partition_circuits(circuits: ty.List[QuantumCircuit],
                                                  crosstalk_properties),
                                 key=lambda x: x.fidelity)
 
-
-        new_partition = partition_list[0]
-        if not new_partition:
-            logger.error(f"No selected partition'.")
-            exit(1)
+        if not partition_list:
+            logger.info(f"Too many simultaneous circuit. No suitable partitions'.")
+            return []
         else:
-            partition_circuit_list.append(new_partition)
-        for qubit in new_partition.value.nodes:
+            partition_circuit_list.append(partition_list[0])
+        for qubit in partition_list[0].value.nodes:
             qubits_used.add(qubit)
     return partition_circuit_list

@@ -37,7 +37,7 @@ from tools.read_circuit import read_benchmark_circuit
 from mapping.mapping_transition import circuits_schedule
 from partition_process.qubit_partition import partition_hardware_heuristic, partition_hardware
 if __name__ == '__main__':
-    hardware = IBMQHardwareArchitecture("ibmq_toronto")
+    hardware = IBMQHardwareArchitecture("ibmq_manhattan")
     hardware_graph = nx.DiGraph(hardware._coupling_graph)
     cnot_error_matrix = get_distance_matrix_cnot_error_cost(hardware)
     readout_error = get_qubit_readout_error(hardware)
@@ -61,27 +61,22 @@ if __name__ == '__main__':
     circuit4.name = "alu-v0_27"
     circuit5 = read_benchmark_circuit("decod24-v2_43")
     circuit5.name = "decod24-v2_43"
-    circuit6 = read_benchmark_circuit("3_17_13")
-    circuit6.name = "3_17_13_2"
 
 
 
     circuits.append(circuit1)
     circuits.append(circuit2)
-    # circuits.append(circuit3)
-    # circuits.append(circuit4)
-    # circuits.append(circuit5)
-    # circuits.append(circuit6)
-
-    # sort circuit according to ascending order of CNOT density
-    circuits = sorted(circuits, key=lambda x: x.count_ops().get("cx", 0) / x.cregs[0].size)
-    print([circuit.name for circuit in circuits])
+    circuits.append(circuit3)
+    circuits.append(circuit4)
+    circuits.append(circuit5)
 
     # threshold of the partition fidelity difference when partitioning independently and simultaneously
     epslon = 0.1
     # weight parameter lambda set by user to weight between the CNOT error rate and readout error rate
     # for fidelity degree of the qubit
     weight_lambda = 2
+    # tag that associates with the job to retrieve the job and give more information of the experiment
+    circuit_tag = ["parallelsim", "ibmq_manhattan"]
 
     # QHSP: partition_hardware_heuristic
     # GSP: partition_hardware
@@ -94,4 +89,5 @@ if __name__ == '__main__':
                       partition_hardware_heuristic,
                       epslon,
                       weight_lambda,
+                      circuit_tag,
                       )
