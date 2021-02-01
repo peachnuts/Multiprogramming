@@ -70,13 +70,12 @@ if __name__ == '__main__':
     circuits.append(circuit4)
     circuits.append(circuit5)
 
+
     # threshold of the partition fidelity difference when partitioning independently and simultaneously
     epslon = 0.1
     # weight parameter lambda set by user to weight between the CNOT error rate and readout error rate
     # for fidelity degree of the qubit
     weight_lambda = 2
-    # tag that associates with the job to retrieve the job and give more information of the experiment
-    circuit_tag = ["parallelsim", "ibmq_manhattan"]
 
     # QHSP: partition_hardware_heuristic
     # GSP: partition_hardware
@@ -89,5 +88,4 @@ if __name__ == '__main__':
                       partition_hardware_heuristic,
                       epslon,
                       weight_lambda,
-                      circuit_tag,
                       )

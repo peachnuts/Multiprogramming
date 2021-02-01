@@ -44,8 +44,7 @@ from partition_process.qubit_partition import (
     hardware_qubit_physical_degree,
 )
 import networkx as nx
-from tools.submit import submit_circuits
-
+from tools.submit2 import result_fidelity, energy_result
 import logging
 import typing as ty
 import numpy as np
@@ -178,7 +177,7 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
                        ], ty.List],
                       epslon,
                       weight_lambda,
-                      circuit_tag,
+                      ansatz_parameter:ty.List=None,
                       crosstalk_properties: ty.Dict=None):
 
     initial_layouts = []
@@ -260,7 +259,7 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
         #print("paritition fidelity difference is", partition_fidelity_difference)
 
         if partition_fidelity_difference < epslon:
-            print(f"circuits that are executed simultaneously with threshold {epslon}")
+            print(f"circuits that are executed simultaneously with threshold {epslon}, and the fidelity difference is {partition_fidelity_difference}.")
             for idx, circuit in enumerate(circuit_list):
                 print(f"circuit name : {circuit.name}")
                 print("Independent partition (PHA)")
@@ -272,6 +271,7 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
             initial_layout, final_circuit = multiprogram_mapping(circuit_list, hardware, multiple_partition)
             initial_layouts.append(initial_layout)
             final_circuits.append(final_circuit)
+            #print(final_circuit.qasm())
             partitions.append([partition.value for partition in multiple_partition])
             print(f"The number of circuits that are executed on hardware simultaneously is {len(circuit_list)}")
             break
@@ -304,4 +304,8 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
             partitions.append(None)
 
     #quit()
-    submit_circuits(hardware, initial_layouts, final_circuits, partitions, circuit_tag)
+    if ansatz_parameter is None:
+        result_fidelity(hardware, initial_layouts, final_circuits, partitions)
+    else:
+        energy_result(hardware, initial_layouts, final_circuits, partitions, ansatz_parameter)
+
