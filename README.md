@@ -8,7 +8,9 @@ The user can install it by cloning with `git`:
 https://github.com/peachnuts/Multiprogramming.git
 ```
 ## How to use?
-The user can find an example in [`src/main.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/main.py).
+The user can find an example in [`src/main.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/main.py), which includes a list of different circuits.
+
+Another example of finding the ground state of Deuteron using VQE can be found in [`src/VQE/deuteron_test.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/VQE/deuteron_test.py).
 
 Here are some notes:
 
@@ -22,9 +24,7 @@ crosstalk_properties = {(2,3):{(5,8) : 0.0317} # E(g_i|g_j) = 0.0317 with g_i = 
 
 3. The function [`main.circuits_schedule`](https://github.com/peachnuts/Multiprogramming/blob/9c0069ffb1d69f9d648300dd6e1c2f180914a287/src/main.py#L81) is the entry to start the multiprogramming algorithm. The last parameter is the partition method selected by the user. It can be `partition_hardware_heuristic` (QHSP) or `partition_hardware` (GSP). 
 
-4. The result includes PHA (independent executions with partition), QHSP/GSP (correlated executions), and HA (independent executions without partition).
-
-5. The quantum register size of the benchmarks should be equal to the hardware qubit numbers.
+4. The quantum register size of the benchmarks should be equal to the hardware qubit numbers.
 
 ## Contact information
 If you have any questions, feel free to contact [siyuan.niu@lirmm.fr](mailto:siyuan.niu@lirmm.fr?subject=[GitHub]%20Multiprogramming).
