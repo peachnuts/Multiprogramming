@@ -242,10 +242,11 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
         #print(f"time is {time.time() - start}")
 
         if not multiple_partition:
-            circuit_list.pop()
+            circ = circuit_list.pop()
             largest_logical_degrees.pop()
             partition_fidelity_independent_list.pop()
             partitions.pop()
+            qubit_circuit_sum -= circ.cregs[0].size
             continue
 
         partition_fidelity_multiple = 0.0
@@ -277,10 +278,11 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
             break
 
         else:
-            circuit_list.pop()
+            circ = circuit_list.pop()
             largest_logical_degrees.pop()
             partition_fidelity_independent_list.pop()
             partitions.pop()
+            qubit_circuit_sum -= circ.cregs[0].size
             continue
 
     # If only one circuit can be executed on the hardware, all the circuits should be executed independently (using HA)
@@ -302,6 +304,9 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
             initial_layouts.append(computed_initial_mapping.values())
             final_circuits.append(mapped_circuit)
             partitions.append(None)
+
+    #calculate the hardware throughput
+    print("hardware throughput is:", qubit_circuit_sum / hardware.qubit_number)
 
     #quit()
     if ansatz_parameter is None:
