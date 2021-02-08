@@ -10,7 +10,7 @@ https://github.com/peachnuts/Multiprogramming.git
 ## How to use?
 The user can find an example in [`src/main.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/main.py), which includes a list of different circuits.
 
-Another example of finding the ground state of Deuteron using VQE can be found in [`src/VQE/deuteron_test.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/VQE/deuteron_test.py).
+Another example of finding the ground state energy of Deuteron using VQE can be found in [`src/VQE/deuteron_test.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/VQE/deuteron_test.py).
 
 Here are some notes:
 
