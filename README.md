@@ -5,7 +5,9 @@ This repository contains the implementation of our multiprogramming mapping algo
 The user can install it by cloning with `git`:
 
 ``` shell
-https://github.com/peachnuts/Multiprogramming.git
+git clone https://github.com/peachnuts/Multiprogramming.git
+pip install multiprogramming==0.0.1
+import Multiprogramming
 ```
 ## How to use?
 The user can find an example in [`src/main.py`](https://github.com/peachnuts/Multiprogramming/blob/main/src/main.py), which includes a list of different circuits.
