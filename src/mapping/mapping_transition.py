@@ -179,7 +179,8 @@ def circuits_schedule(circuits: ty.List[QuantumCircuit],
     partitions = []
 
     # Sort circuit according to ascending order of CNOT density
-    circuits = sorted(circuits, key=lambda x: x.count_ops().get("cx", 0) / x.cregs[0].size, reverse=True)
+    if not ansatz_parameter:
+        circuits = sorted(circuits, key=lambda x: x.count_ops().get("cx", 0) / x.cregs[0].size, reverse=True)
 
     # Pick up K circuits that are able to be executed on hardware at the same time
     # sum(n_i) <= N (qubit number of hardware), 1 <= i <= K
