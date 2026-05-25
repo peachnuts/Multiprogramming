@@ -33,7 +33,7 @@
 import typing as ty
 
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 
 
 from mapping.initial_mapping_construct import get_best_mapping_sabre

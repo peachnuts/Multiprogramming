@@ -36,12 +36,11 @@ import logging
 
 import numpy
 
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit import Gate, QuantumRegister
+from qiskit.circuit import Qubit, Gate, QuantumRegister
 from qiskit.circuit.library.standard_gates.swap import SwapGate
 from qiskit.circuit.library.standard_gates.x import CXGate
 
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 
 from mapping.layer import QuantumLayer
 from hardware.IBMQHardwareArchitecture import (

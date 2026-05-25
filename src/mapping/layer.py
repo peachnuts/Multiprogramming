@@ -33,9 +33,8 @@
 import logging
 import typing as ty
 
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGNode
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit import Qubit, Clbit
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 
 logger = logging.getLogger("layer")
 
@@ -104,7 +103,7 @@ class QuantumLayer:
             ]
             #print(new_physical_qubits)
             dag_circuit.apply_operation_back(
-                op.op, new_logical_qubits, op.cargs, op.condition
+                op.op, new_logical_qubits, list(op.cargs)
             )
 
     def __len__(self) -> int:

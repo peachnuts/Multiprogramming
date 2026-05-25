@@ -24,9 +24,8 @@
 from hardware.IBMQHardwareArchitecture import IBMQHardwareArchitecture
 from qiskit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.circuit.classicalregister import Clbit
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit, Clbit, QuantumRegister, ClassicalRegister
+from qiskit.dagcircuit import DAGCircuit
 from mapping.iterative_mapping import iterative_mapping_algorithm
 from mapping.initial_mapping_wrapper import initial_mapping
 from mapping.initial_mapping_construct import cost
@@ -46,23 +45,34 @@ import time
 
 logger = logging.getLogger("mapping_transisiton")
 
-def _modify_dag_circuit(circuit: QuantumCircuit, previous_qubits_used: int):
+def _modify_dag_circuit(circuit: QuantumCircuit, previous_qubits_used: int,
+                        shared_qreg: QuantumRegister) -> QuantumCircuit:
     """
-    Modify the dag circuit in order to merge several dag circuits into one dag circuit
+    Re-index a circuit's active (non-idle) qubits into shared_qreg starting at
+    previous_qubits_used. All circuits in a multiprogramming context share the same
+    shared_qreg so their Qubit objects are compatible when building the merged DAG.
     """
-    origin_dag = circuit_to_dag(circuit)
-    new_dag = DAGCircuit()
-    for qreg in origin_dag.qregs.values():
-        new_dag.add_qreg(qreg)
-    for creg in origin_dag.cregs.values():
-        new_dag.add_creg(creg)
-    for node in origin_dag.topological_op_nodes():
-        new_dag.apply_operation_back(node.op,
-                                       qargs=[Qubit(new_dag.qregs['q'], qarg.index + previous_qubits_used) for qarg in
-                                              node.qargs],
-                                       cargs=[Clbit(new_dag.cregs['c'], carg.index) for carg in
-                                              node.cargs])
-    new_circuit = dag_to_circuit(new_dag)
+    dag = circuit_to_dag(circuit)
+    idle_set = set(dag.idle_wires())
+    active_qubits = [q for q in circuit.qubits if q not in idle_set]
+    n_active = len(active_qubits)
+    n_clbits = len(circuit.clbits)
+
+    new_circuit = QuantumCircuit(shared_qreg)
+    if n_clbits > 0:
+        new_creg = ClassicalRegister(n_clbits, 'c')
+        new_circuit.add_register(new_creg)
+
+    qubit_map = {active_qubits[i]: shared_qreg[i + previous_qubits_used]
+                 for i in range(n_active)}
+    clbit_map = {circuit.clbits[i]: new_circuit.clbits[i] for i in range(n_clbits)}
+
+    for inst in circuit.data:
+        new_circuit.append(
+            inst.operation,
+            [qubit_map[q] for q in inst.qubits],
+            [clbit_map[c] for c in inst.clbits],
+        )
     return new_circuit
 
 def multiprogram_initial_mapping(
@@ -117,6 +127,11 @@ def multiprogram_mapping(circuits: ty.List[QuantumCircuit],
     circuit_partitions = [list(part.value) for part in circuit_partitions]
     print(circuit_partitions)
 
+    # Build a single shared register so every update circuit uses the same Qubit objects.
+    # Each circuit contributes exactly len(circuit_partitions[i]) logical qubits.
+    total_logical_qubits = sum(len(p) for p in circuit_partitions)
+    shared_qreg = QuantumRegister(total_logical_qubits, 'q')
+
     # obtain the complete initial mapping of the merged circuit
     circuit_initial_mapping = dict()
     computed_initial_mappings = []
@@ -126,7 +141,7 @@ def multiprogram_mapping(circuits: ty.List[QuantumCircuit],
     num_cnots_circuits = sum([cost_gate_num(circuit) for circuit in circuits])
 
     for index, circuit in enumerate(circuits):
-        circuit = _modify_dag_circuit(circuit, previous_qubit_used)
+        circuit = _modify_dag_circuit(circuit, previous_qubit_used, shared_qreg)
         update_circuits.append(circuit)
         computed_initial_mapping = initial_mapping(
             circuit, hardware, circuit_partitions[index], iterative_mapping_algorithm, cost, "sabre", 10,

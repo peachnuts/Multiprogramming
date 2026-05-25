@@ -34,8 +34,8 @@ import logging
 import typing as ty
 
 import numpy
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.dagcircuit.dagcircuit import DAGNode
+from qiskit.circuit import Qubit
+from qiskit.dagcircuit import DAGNode
 
 from hardware.IBMQHardwareArchitecture import (
     IBMQHardwareArchitecture,

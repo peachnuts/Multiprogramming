@@ -37,8 +37,8 @@ from pathlib import Path
 import networkx as nx
 import numpy as np
 from hardware.HardwareArchitecture import HardwareArchitecture
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.dagcircuit.dagcircuit import DAGNode
+from qiskit.circuit import Qubit
+from qiskit.dagcircuit import DAGNode
 
 logger = logging.getLogger("hardware.IBMQHardwareArchitecture")
 
@@ -75,73 +75,18 @@ class IBMQHardwareArchitecture(HardwareArchitecture):
             exit(1)
 
     @staticmethod
-    def _get_link_properties_dict(backend_properties, source: int, sink: int):
-        for gate in backend_properties.gates:
-            if gate.gate != "cx":
-                continue
-            if len(gate.qubits) != 2:
-                continue
-            if gate.qubits[0] == source and gate.qubits[1] == sink:
-                # Return the dictionary
-                properties = {
-                    param.name: IBMQHardwareArchitecture._get_value(
-                        param.value, param.unit
-                    )
-                    for param in gate.parameters
-                }
-                return properties
-
-    @staticmethod
-    def _get_qubit_properties_dict(qubit_index, qubit_properties, gates_properties):
-        properties = dict()
-        for prop in qubit_properties[qubit_index]:
-            properties[prop.name] = IBMQHardwareArchitecture._get_value(
-                prop.value, prop.unit
-            )
-        for gate in gates_properties:
-            # Filter the gates that are not interesting
-            if len(gate.qubits) > 1:
-                continue
-            if gate.qubits[0] != qubit_index:
-                continue
-            properties[gate.gate] = {
-                param.name: IBMQHardwareArchitecture._get_value(param.value, param.unit)
-                for param in gate.parameters
-            }
-        return properties
-
-    @staticmethod
     def _get_backend(backend_name: str):
-        from qiskit import IBMQ
-        from qiskit.providers.ibmq.exceptions import (
-            IBMQAccountCredentialsNotFound,
-            IBMQAccountMultipleCredentialsFound,
-            IBMQAccountCredentialsInvalidUrl,
+        from qiskit.providers.fake_provider import GenericBackendV2
+        from qiskit.transpiler import CouplingMap
+        logger.info(f"Creating fake backend approximating '{backend_name}' (65-qubit heavy-square topology).")
+        # ibmq_manhattan: 65-qubit device — approximate with heavy-square(5) topology
+        coupling_map = CouplingMap.from_heavy_square(5)
+        backend = GenericBackendV2(
+            num_qubits=coupling_map.size(),
+            basis_gates=["id", "rz", "sx", "x", "cx"],
+            coupling_map=coupling_map,
+            seed=42,
         )
-        logger.info("Loading IBMQ account.")
-        try:
-            IBMQ.load_account()
-            provider = IBMQ.get_provider(
-                hub='ibm-q-france', group='univ-montpellier', project='default'
-            )
-        except(
-                IBMQAccountMultipleCredentialsFound,
-                IBMQAccountCredentialsNotFound,
-                IBMQAccountCredentialsInvalidUrl,
-        ):
-            logger.error(
-                "WARNING: No valid IBMQ credentials found on disk.\n"
-                "You must store your credentials using IBMQ.save_account(token, url).\n"
-                "For now, there's only access to local simulator backends..."
-            )
-            exit(1)
-        logger.info("Connected to IBMQ account!")
-        logger.info(f"Getting backend '{backend_name}'.")
-        matching_backends = provider.backends(backend_name)
-        if not matching_backends:
-            logger.error(f"No backend matching the search '{backend_name}'.")
-            exit(1)
-        backend = matching_backends[0]
         return backend
 
     def __init__(
@@ -166,39 +111,36 @@ class IBMQHardwareArchitecture(HardwareArchitecture):
         super().__init__(incoming_graph_data, **kwargs)
         self._ignored_gates = {"barrier"}
         if weight_func is None:
-            # Default to the cost of a CNOT
             weight_func = swap_number
 
         self._weight_func = weight_func
         self.name = backend_name
         backend = IBMQHardwareArchitecture._get_backend(backend_name)
-        backend_configuration = backend.configuration()
-        qubit_number = backend_configuration.n_qubits
 
-        self._coupling_graph = backend_configuration.coupling_map
+        qubit_number = backend.num_qubits
+        coupling_edges = list(backend.coupling_map.get_edges())
+        self._coupling_graph = coupling_edges
 
-        backend_properties = backend.properties()
-        qubit_properties = backend_properties.qubits
-        gate_properties = backend_properties.gates
-        qubit_indices = list()
-        # Add the qubits with their properties (error rates?)
         for qubit_index in range(qubit_number):
-            added_qubit_index = self.add_qubit(
-                **IBMQHardwareArchitecture._get_qubit_properties_dict(
-                    qubit_index, qubit_properties, gate_properties
-                )
-            )
-            qubit_indices.append(added_qubit_index)
-        # Add the links between qubits
-        for source, sink in self._coupling_graph:
-            self.add_link(
-                source,
-                sink,
-                **IBMQHardwareArchitecture._get_link_properties_dict(
-                    backend_properties, source, sink
-                ),
-            )
-        # Update the links with a default function
+            readout_error = 0.01
+            if 'measure' in backend.target and (qubit_index,) in backend.target['measure']:
+                props = backend.target['measure'][(qubit_index,)]
+                if props and props.error is not None:
+                    readout_error = props.error
+            self.add_qubit(readout_error=readout_error, T1=0.0, T2=0.0, frequency=0.0)
+
+        for source, sink in coupling_edges:
+            gate_error = 0.01
+            gate_length = 300.0
+            if 'cx' in backend.target and (source, sink) in backend.target['cx']:
+                cx_props = backend.target['cx'][(source, sink)]
+                if cx_props:
+                    if cx_props.error is not None:
+                        gate_error = cx_props.error
+                    if cx_props.duration is not None:
+                        gate_length = cx_props.duration * 1e9
+            self.add_link(source, sink, gate_error=gate_error, gate_length=gate_length)
+
         self.update_link_weights()
 
 
@@ -214,10 +156,7 @@ class IBMQHardwareArchitecture(HardwareArchitecture):
         return self.nodes[qubit_index]['readout_error']
 
     def get_single_qubit_error(self, qubit_index: int) -> float:
-        return (self.nodes[qubit_index]['id']['gate_error']
-               + self.nodes[qubit_index]['u1']['gate_error']
-               + self.nodes[qubit_index]['u2']['gate_error'] +
-               + self.nodes[qubit_index]['u3']['gate_error']) / 4
+        return self.nodes[qubit_index].get('readout_error', 0.01)
 
     def update_link_weights(self, distance_matrix: np.ndarray=None):
         """

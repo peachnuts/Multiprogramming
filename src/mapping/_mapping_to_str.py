@@ -32,7 +32,7 @@
 
 import typing as ty
 
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 
 
 def mapping_to_str(partition: ty.List, mapping: ty.Dict[Qubit, int]) -> str:
@@ -42,7 +42,10 @@ def mapping_to_str(partition: ty.List, mapping: ty.Dict[Qubit, int]) -> str:
     return ":".join(qubits_str)
 
 def mapping_to_str_multiple(mapping: ty.Dict[Qubit, int]) -> str:
-    qubits_str = ["" for _ in range(len(mapping))]
+    if not mapping:
+        return ""
+    max_v = max(mapping.values())
+    qubits_str = ["" for _ in range(max_v + 1)]
     for k, v in mapping.items():
         qubits_str[v] = str(k)
     return ":".join(qubits_str)

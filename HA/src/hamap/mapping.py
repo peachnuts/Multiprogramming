@@ -34,10 +34,10 @@ import typing as ty
 
 import numpy
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 import logging
 from HA.src.hamap.distance_matrix import (
     get_distance_matrix_mixed,

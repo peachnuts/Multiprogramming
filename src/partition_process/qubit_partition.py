@@ -262,28 +262,17 @@ def largest_circuit_logical_degree(circuit: QuantumCircuit):
     node degree of the logical qubit.
     """
     logical_qubit_degree = defaultdict(list)
-    qasm_file = circuit.qasm().split(';')
-    for line in qasm_file:
-        line = line.split()
-        if not line:
-            continue
-        if line[0] == 'OPENQASM':
-            continue
-        if line[0] == 'include':
-            continue
-        if line[0] == 'creg':
-            continue
-        if line[0] == 'qreg':
-            continue
-        if line[0] == 'cx':
-            qubits = line[1].split(',')
-            qubit_1 = int(qubits[0][2:-1])
-            qubit_2 = int(qubits[1][2:-1])
-            if not logical_qubit_degree[qubit_1] or qubit_2 not in logical_qubit_degree[qubit_1]:
-                logical_qubit_degree[qubit_1].append(qubit_2)
-            if not logical_qubit_degree[qubit_2] or qubit_1 not in logical_qubit_degree[qubit_2]:
-                logical_qubit_degree[qubit_2].append(qubit_1)
+    for inst in circuit.data:
+        if inst.operation.name == 'cx':
+            q1 = circuit.find_bit(inst.qubits[0]).index
+            q2 = circuit.find_bit(inst.qubits[1]).index
+            if q2 not in logical_qubit_degree[q1]:
+                logical_qubit_degree[q1].append(q2)
+            if q1 not in logical_qubit_degree[q2]:
+                logical_qubit_degree[q2].append(q1)
 
+    if not logical_qubit_degree:
+        return 0
     return len(sorted(logical_qubit_degree.values(), key=lambda x: len(x))[-1])
 
 

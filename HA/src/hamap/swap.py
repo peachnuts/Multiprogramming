@@ -34,7 +34,7 @@ import logging
 import typing as ty
 
 from qiskit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 
 from HA.src.hamap.gates import (
     TwoQubitGate,

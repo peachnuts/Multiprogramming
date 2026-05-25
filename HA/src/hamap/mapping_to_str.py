@@ -32,7 +32,7 @@
 
 import typing as ty
 
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 
 
 def mapping_to_str(mapping: ty.Dict[Qubit, int]) -> str:

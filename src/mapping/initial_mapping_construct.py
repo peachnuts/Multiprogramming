@@ -33,7 +33,7 @@ import typing as ty
 
 import numpy
 from qiskit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 from qiskit.converters import circuit_to_dag
 import logging
 from hardware.IBMQHardwareArchitecture import (

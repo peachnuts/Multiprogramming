@@ -36,7 +36,7 @@ from copy import copy
 
 import numpy
 from qiskit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 from qiskit.converters import circuit_to_dag
 
 from hamap._circuit_manipulation import add_qubits_to_quantum_circuit

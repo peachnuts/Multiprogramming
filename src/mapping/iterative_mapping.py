@@ -34,13 +34,12 @@ import typing as ty
 import logging
 import numpy
 from qiskit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit, Clbit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 from hardware.partition_distance_matrix import partition_distance_matrix, adj_matrix_construct
 from mapping.swap_heuristics import swap_heuristic
-from qiskit.circuit.classicalregister import Clbit
 
 logger = logging.getLogger("iterative_mapping")
 
@@ -69,18 +68,22 @@ def _create_empty_dagcircuit_from_existing(dagcircuits: ty.List[DAGCircuit]) -> 
     return result
 
 def _modify_dag_circuit(circuit: QuantumCircuit, previous_qubits_used: int):
-    origin_dag = circuit_to_dag(circuit)
+    from qiskit.circuit import QuantumRegister, ClassicalRegister
+    n_qubits = len(circuit.qubits)
+    n_clbits = len(circuit.clbits)
+    new_qreg = QuantumRegister(previous_qubits_used + n_qubits, 'q')
     new_dag = DAGCircuit()
-    for qreg in origin_dag.qregs.values():
-        new_dag.add_qreg(qreg)
-    for creg in origin_dag.cregs.values():
-        new_dag.add_creg(creg)
-    for node in origin_dag.topological_op_nodes():
-        new_dag.apply_operation_back(node.op,
-                                       qargs=[Qubit(new_dag.qregs['q'], qarg.index + previous_qubits_used) for qarg in
-                                              node.qargs],
-                                       cargs=[Clbit(new_dag.cregs['c'], carg.index) for carg in
-                                              node.cargs])
+    new_dag.add_qreg(new_qreg)
+    if n_clbits > 0:
+        new_creg = ClassicalRegister(n_clbits, 'c')
+        new_dag.add_creg(new_creg)
+    orig_dag = circuit_to_dag(circuit)
+    for node in orig_dag.topological_op_nodes():
+        new_dag.apply_operation_back(
+            node.op,
+            qargs=[new_qreg[orig_dag.find_bit(q).index + previous_qubits_used] for q in node.qargs],
+            cargs=[new_dag.cregs['c'][orig_dag.find_bit(c).index] for c in node.cargs] if node.cargs else [],
+        )
     return new_dag
 
 def iterative_mapping_algorithm(
